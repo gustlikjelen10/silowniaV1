@@ -3,49 +3,110 @@
 <title>Siłownia 90</title>
 <style>
 :root{--bg:#08130d;--p:#10241a;--g:#2fbf4a;--y:#ffd400;--t:#e8f2ea;--m:#7f9a88;--r:#e63946}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 "Trebuchet MS",Arial,sans-serif;padding-bottom:70px}
-h1{margin:0;padding:14px 16px;font:italic 900 26px Impact,"Arial Black",sans-serif;letter-spacing:1px;background:var(--g);color:#04100a;border-bottom:4px solid var(--y)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 Roboto,"Segoe UI",Arial,sans-serif;padding-bottom:70px}
+h1{margin:0;padding:14px 16px;font:italic 800 24px Roboto,"Segoe UI",Arial,sans-serif;letter-spacing:1px;background:var(--g);color:#04100a;border-bottom:4px solid var(--y)}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#04100a;border-top:3px solid var(--y)}
-nav button{flex:1;padding:14px 2px;background:none;border:0;color:var(--m);font:800 14px Impact,Arial,sans-serif}
+nav button{flex:1;padding:14px 2px;background:none;border:0;color:var(--m);font:700 13px Roboto,"Segoe UI",Arial,sans-serif}
 nav button.on{color:var(--bg);background:var(--y)}
 main{padding:12px;max-width:640px;margin:auto}
 .card{background:var(--p);border-left:5px solid var(--g);padding:12px;margin:0 0 12px}
-.card h3{margin:0 0 4px;font:800 18px Impact,Arial,sans-serif;color:var(--y)}
+.card h3{margin:0 0 4px;font:700 17px Roboto,"Segoe UI",Arial,sans-serif;color:var(--y)}
+.top{display:flex;gap:10px}.top svg{width:84px;height:90px;flex:none;background:#04100a}
+.goal{color:var(--g);font-weight:700;margin:4px 0}.cue{color:var(--m);font-size:13px}
 small,.m{color:var(--m)}
 input,select{background:#04100a;color:var(--t);border:2px solid #24402f;padding:12px;font-size:17px;width:100%;border-radius:0}
 .row{display:flex;gap:8px;margin:8px 0}.row>*{flex:1;min-width:0}
-button.b{background:var(--g);color:#04100a;border:0;padding:12px;font:900 16px Impact,Arial,sans-serif;width:100%}
-.days{display:flex;gap:8px;margin-bottom:12px}.days button{flex:1;padding:12px;background:var(--p);color:var(--t);border:2px solid #24402f;font:900 18px Impact,sans-serif}.days .on{background:var(--y);color:var(--bg)}
+button.b{background:var(--g);color:#04100a;border:0;padding:12px;font:800 15px Roboto,"Segoe UI",Arial,sans-serif;width:100%}
+.days{display:flex;gap:8px;margin-bottom:12px}.days button{flex:1;padding:12px;background:var(--p);color:var(--t);border:2px solid #24402f;font:800 16px Roboto,"Segoe UI",sans-serif}.days .on{background:var(--y);color:var(--bg)}
 .set{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #24402f}.set a{color:var(--r);padding:0 8px}
-svg{width:100%;height:auto;background:#04100a}
-.hide{display:none}
+.chart{width:100%;height:auto;background:#04100a}
+li{margin:4px 0}ul{padding-left:18px;margin:6px 0}.up{color:var(--y)}
 </style></head><body>
 <h1>SIŁOWNIA 90</h1><main id="v"></main>
 <nav id="n"></nav>
 <script>
+const EX={
+"Wyciskanie nogami (suwnica)":{k:"legpress",lo:10,hi:15,st:5,c:"Plecy oparte, stopy na platformie na szerokość bioder. Wypychaj nogi, nie blokuj kolan do końca."},
+"Wyciskanie na klatkę (maszyna)":{k:"chest",lo:8,hi:12,st:2.5,c:"Plecy oparte, łopatki ściągnięte. Wypychaj uchwyty przed siebie, wracaj powoli."},
+"Ściąganie drążka do klatki":{k:"pulldown",lo:8,hi:12,st:2.5,c:"Ściągaj drążek do górnej części klatki, łokcie w dół. Nie bujaj tułowiem."},
+"Ściąganie drążka wąsko":{k:"pulldown",lo:8,hi:12,st:2.5,c:"Wąski uchwyt, łokcie blisko ciała. Ściągaj do klatki, nie bujaj tułowiem."},
+"Wyciskanie nad głowę (maszyna)":{k:"shoulder",lo:8,hi:12,st:2.5,c:"Plecy oparte. Wyciskaj uchwyty w górę, nie wyginaj lędźwi."},
+"Uginanie nóg siedząc":{k:"legcurl",lo:10,hi:15,st:2.5,c:"Uginaj nogi pod siebie, powoli wracaj. Biodra dociśnięte do siedziska."},
+"Spięcia brzucha (maszyna)":{k:"crunch",lo:12,hi:20,st:2.5,c:"Zwijaj tułów do przodu napinając brzuch, nie ciągnij rękoma."},
+"Prostowanie nóg siedząc":{k:"legext",lo:10,hi:15,st:2.5,c:"Prostuj nogi niemal do końca, powoli opuszczaj."},
+"Wiosłowanie siedząc (maszyna)":{k:"row",lo:8,hi:12,st:2.5,c:"Klatka oparta o podpórkę. Ciągnij łokcie do tyłu, ściągaj łopatki."},
+"Rozpiętki (maszyna Pec Fly)":{k:"fly",lo:10,hi:15,st:2.5,c:"Ramiona lekko ugięte, łącz ręce przed sobą, kontroluj powrót."},
+"Odwrotne rozpiętki (tylny bark)":{k:"rearfly",lo:10,hi:15,st:2.5,c:"Klatka do oparcia, odwódź ramiona do tyłu, łopatki ściągnięte."},
+"Uginanie ramion (biceps)":{k:"curl",lo:8,hi:12,st:2.5,c:"Łokcie przy tułowiu. Zginaj ramiona, powoli opuszczaj."},
+"Prostowanie ramion (triceps)":{k:"triceps",lo:8,hi:12,st:2.5,c:"Łokcie przy ciele. Prostuj ramiona w dół, barki nieruchomo."},
+"Odwodzenie nóg (maszyna)":{k:"abduct",lo:12,hi:20,st:2.5,c:"Plecy oparte. Rozchylaj nogi na zewnątrz i wracaj powoli."},
+"Prostowanie pleców (maszyna)":{k:"backext",lo:10,hi:15,st:2.5,c:"Prostuj tułów do pozycji neutralnej, bez przeprostu."},
+"Deska (plank, sekundy)":{k:"plank",lo:30,hi:60,st:0,c:"Łokcie pod barkami, ciało w jednej linii. Wpisz czas w sekundach w polu powt."}};
+// poses: [headX,headY, neck, hip, knee, foot, elbow, hand]
+const S=[30,18,30,28,30,60,54,60,54,88],P={
+legpress:[[22,34,26,42,32,64,52,44,60,70,36,56,44,62],[22,34,26,42,32,64,58,56,84,48,36,56,44,62]],
+chest:[[...S,20,44,38,36],[...S,48,34,68,34]],
+pulldown:[[...S,40,10,46,-4],[...S,22,42,42,34]],
+shoulder:[[...S,40,44,34,30],[...S,40,12,40,-4]],
+legcurl:[[...S,36,44,42,58].map((v,i)=>i==8?82:i==9?58:v),[...S,36,44,42,58].map((v,i)=>i==8?52:i==9?88:v)],
+legext:[[...S,36,44,42,58],[...S,36,44,42,58].map((v,i)=>i==8?82:i==9?58:v)],
+row:[[...S,48,38,68,40],[...S,18,42,40,38]],
+fly:[[50,18,50,28,50,60,44,72,44,90,32,34,16,40],[50,18,50,28,50,60,44,72,44,90,38,34,47,38]],
+curl:[[30,14,30,24,30,56,32,74,32,94,30,42,34,60],[30,14,30,24,30,56,32,74,32,94,32,42,44,28]],
+triceps:[[...S,34,44,40,28],[...S,34,44,46,60]],
+crunch:[[...S,36,44,44,40],[46,30,40,36,30,60,54,60,54,88,42,50,50,46]],
+abduct:[[50,18,50,28,50,56,46,72,46,90,40,42,38,56],[50,18,50,28,50,56,36,72,30,90,40,42,38,56]],
+backext:[[60,38,54,46,32,66,56,66,56,92,40,50,46,46],[30,22,30,32,32,66,56,66,56,92,34,48,40,44]],
+plank:[[78,50,68,56,22,66,16,70,10,78,68,72,82,72]]};
+P.rearfly=[P.fly[1],P.fly[0]];P.fly.front=P.rearfly.front=P.abduct.front=1;
+P.legcurl[0][2]=30;
+function dd(p,f){const m=x=>100-x,L=(a,b,c)=>`M${a} ${b}L${c}`;let s=`M${p[2]} ${p[3]}L${p[4]} ${p[5]}M${p[4]} ${p[5]}L${p[6]} ${p[7]}L${p[8]} ${p[9]}M${p[2]} ${p[3]}L${p[10]} ${p[11]}L${p[12]} ${p[13]}`;
+if(f)s+=`M${p[4]} ${p[5]}L${m(p[6])} ${p[7]}L${m(p[8])} ${p[9]}M${p[2]} ${p[3]}L${m(p[10])} ${p[11]}L${m(p[12])} ${p[13]}`;return s}
+function fig(k){const q=P[k],f=q.front||k=="fly"||k=="rearfly"||k=="abduct",a=q[0],b=q[1]||q[0],A=dd(a,f),B=dd(b,f);
+return`<svg viewBox="0 -8 100 108"><path fill="none" stroke="#2fbf4a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="${A}"><animate attributeName="d" values="${A};${B};${A}" dur="2.6s" repeatCount="indefinite"/></path><circle r="7" fill="#ffd400" cx="${a[0]}" cy="${a[1]}"><animate attributeName="cx" values="${a[0]};${b[0]};${a[0]}" dur="2.6s" repeatCount="indefinite"/><animate attributeName="cy" values="${a[1]};${b[1]};${a[1]}" dur="2.6s" repeatCount="indefinite"/></circle></svg>`}
 const PLAN={A:["Wyciskanie nogami (suwnica)","Wyciskanie na klatkę (maszyna)","Ściąganie drążka do klatki","Wyciskanie nad głowę (maszyna)","Uginanie nóg siedząc","Spięcia brzucha (maszyna)"],
 B:["Prostowanie nóg siedząc","Wiosłowanie siedząc (maszyna)","Rozpiętki (maszyna Pec Fly)","Odwrotne rozpiętki (tylny bark)","Uginanie ramion (biceps)","Prostowanie ramion (triceps)"],
-C:["Wyciskanie nogami (suwnica)","Ściąganie drążka wąsko","Wyciskanie na klatkę (maszyna)","Odwodzenie nóg (maszyna)","Prostowanie pleców (maszyna)","Deska (plank), czas w powt. = sekundy"]};
-const ALL=[...new Set(Object.values(PLAN).flat())],CARDIO=["Rower","Bieżnia","Orbitrek","Wioślarz","Schody"];
+C:["Wyciskanie nogami (suwnica)","Ściąganie drążka wąsko","Wyciskanie na klatkę (maszyna)","Odwodzenie nóg (maszyna)","Prostowanie pleców (maszyna)","Deska (plank, sekundy)"]};
+const ALL=Object.keys(EX),CARDIO=["Rower","Bieżnia","Orbitrek","Wioślarz","Schody"];
 let D={w:[],s:[],c:[]},tab="t",day="A",ex=ALL[0],pin=localStorage.pin||"",tm;
-const today=()=>new Date().toISOString().slice(0,10),$=s=>document.querySelector(s);
+const today=()=>new Date().toISOString().slice(0,10),ds=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10),$=s=>document.querySelector(s);
 const hd=()=>({"content-type":"application/json","x-pin":pin});
-async function load(){let r=await fetch("/api/data",{headers:hd()});if(r.status==401){pin=prompt("PIN:")||"";localStorage.pin=pin;return load()}D=await r.json();render()}
+async function load(){let r=await fetch("/api/data",{headers:hd()});if(r.status==401){pin=prompt("PIN:")||"";localStorage.pin=pin;return load()}D=await r.json();D.w=D.w||[];D.s=D.s||[];D.c=D.c||[];render()}
 function save(){clearTimeout(tm);tm=setTimeout(()=>fetch("/api/data",{method:"PUT",headers:hd(),body:JSON.stringify(D)}),600)}
+function sessions(e,incl){const m={};D.s.filter(x=>x.ex==e&&(incl||x.d<today())).forEach(x=>(m[x.d]=m[x.d]||[]).push(x));return Object.keys(m).sort().reverse().map(d=>({d,sets:m[d]}))}
+function target(e){const x=EX[e],ss=sessions(e);if(!ss.length)return null;const L=ss[0].sets,w=Math.max(...L.map(s=>s.kg)),at=L.filter(s=>s.kg==w),mn=Math.min(...at.map(s=>s.r));
+if(!x.st)return{kg:0,r:mn+5};if(mn>=x.hi)return{kg:w+x.st,r:x.lo,up:1};
+if(ss[1]){const a2=ss[1].sets.filter(s=>s.kg==w);if(mn<x.lo&&a2.length&&Math.min(...a2.map(s=>s.r))<x.lo)return{kg:Math.max(0,w-x.st),r:x.lo,down:1}}
+return{kg:w,r:Math.min(x.hi,mn+1)}}
+function goal(e){const x=EX[e],t=target(e);if(!t)return`Pierwszy raz: dobierz ciężar, przy którym zrobisz ${x.lo} powt. z zapasem. Cel: 3 serie po ${x.lo}–${x.hi}.`;
+if(!x.st)return`Cel na dziś: ${t.r} s`;return`Cel na dziś: ${t.kg} kg × ${t.r}–${x.hi}, 3 serie`+(t.up?" ↑ więcej ciężaru":t.down?" ↓ lżej, wróć do formy":"")}
 function chart(pts,u){if(pts.length<2)return'<p class="m">Za mało danych na wykres (min. 2 wpisy).</p>';
 const W=600,H=260,p=36,xs=pts.map((_,i)=>p+i*(W-2*p)/(pts.length-1)),ys=pts.map(a=>a[1]),mn=Math.min(...ys),mx=Math.max(...ys),f=v=>H-p-(mx==mn?.5:(v-mn)/(mx-mn))*(H-2*p);
-return`<svg viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="#2fbf4a" stroke-width="3" points="${pts.map((a,i)=>xs[i]+","+f(a[1])).join(" ")}"/>${pts.map((a,i)=>`<circle cx="${xs[i]}" cy="${f(a[1])}" r="4" fill="#ffd400"/>`).join("")}<text x="6" y="${f(mx)+4}" fill="#7f9a88" font-size="14">${mx}${u}</text><text x="6" y="${f(mn)+4}" fill="#7f9a88" font-size="14">${mn}${u}</text><text x="${p}" y="${H-8}" fill="#7f9a88" font-size="13">${pts[0][0]}</text><text x="${W-p-70}" y="${H-8}" fill="#7f9a88" font-size="13">${pts.at(-1)[0]}</text></svg>`}
-function last(e){const l=D.s.filter(x=>x.ex==e&&x.d<today()).sort((a,b)=>b.d.localeCompare(a.d));if(!l.length)return"Brak poprzednich wpisów";const d=l[0].d;return"Ostatnio ("+d+"): "+l.filter(x=>x.d==d).map(x=>x.kg+"×"+x.r).join(", ")}
-function addSet(i){const e=PLAN[day][i],kg=+$("#k"+i).value,r=+$("#r"+i).value;if(!kg&&!r)return;D.s.push({id:Date.now(),d:today(),ex:e,kg,r});save();render()}
+return`<svg class="chart" viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="#2fbf4a" stroke-width="3" points="${pts.map((a,i)=>xs[i]+","+f(a[1])).join(" ")}"/>${pts.map((a,i)=>`<circle cx="${xs[i]}" cy="${f(a[1])}" r="4" fill="#ffd400"/>`).join("")}<text x="6" y="${f(mx)+4}" fill="#7f9a88" font-size="14">${mx}${u}</text><text x="6" y="${f(mn)+4}" fill="#7f9a88" font-size="14">${mn}${u}</text><text x="${p}" y="${H-8}" fill="#7f9a88" font-size="13">${pts[0][0]}</text><text x="${W-p-70}" y="${H-8}" fill="#7f9a88" font-size="13">${pts.at(-1)[0]}</text></svg>`}
+function addSet(i){const e=PLAN[day][i],kg=+$("#k"+i).value||0,r=+$("#r"+i).value;if(!r)return;D.s.push({id:Date.now(),d:today(),ex:e,kg,r});save();render()}
 function del(k,id){D[k]=D[k].filter(x=>x.id!=id);save();render()}
 function addW(){const kg=+$("#wk").value;if(!kg)return;D.w=D.w.filter(x=>x.d!=$("#wd").value);D.w.push({id:Date.now(),d:$("#wd").value,kg});D.w.sort((a,b)=>a.d.localeCompare(b.d));save();render()}
 function addC(){const o={id:Date.now(),d:today(),m:$("#cm").value,min:+$("#cmin").value,spd:+$("#cs").value||0,inc:+$("#ci").value||0};if(!o.min)return;D.c.push(o);save();render()}
+function report(){const cur=D.s.filter(x=>x.d>ds(7)),prv=D.s.filter(x=>x.d>ds(14)&&x.d<=ds(7)),n=a=>new Set(a.map(x=>x.d)).size,vol=a=>Math.round(a.reduce((t,x)=>t+x.kg*x.r,0)),cm=a=>a.reduce((t,x)=>t+x.min,0),cc=D.c.filter(x=>x.d>ds(7)),cp=D.c.filter(x=>x.d>ds(14)&&x.d<=ds(7));
+if(!D.s.length)return'<div class="card"><h3>Raport</h3><p class="m">Zapisz pierwszy trening, a tu pojawi się podsumowanie tygodnia.</p></div>';
+const dl=(a,b)=>b?` (${a>=b?"+":""}${a-b} vs poprzedni tydz.)`:"";
+let li=[`Treningi: <b>${n(cur)}</b>${dl(n(cur),n(prv))}`,`Objętość (kg × powt.): <b>${vol(cur)}</b>${prv.length?` (poprzednio ${vol(prv)})`:""}`,`Cardio: <b>${cm(cc)} min</b>${cp.length?` (poprzednio ${cm(cp)})`:""}`];
+if(D.w.length>1){const l=D.w.at(-1),o=[...D.w].reverse().find(x=>x.d<=ds(7))||D.w[0],df=Math.round((l.kg-o.kg)*10)/10;li.push(`Waga: <b>${l.kg} kg</b> (${df>0?"+":""}${df} kg od ${o.d})`)}
+const pr=ALL.filter(e=>{const c=cur.filter(x=>x.ex==e).map(x=>x.kg),o=D.s.filter(x=>x.ex==e&&x.d<=ds(7)).map(x=>x.kg);return c.length&&o.length&&Math.max(...c)>Math.max(...o)&&EX[e].st}),
+st=ALL.filter(e=>{const s=sessions(e,1).slice(0,3);if(s.length<3)return false;const w=s.map(q=>Math.max(...q.sets.map(z=>z.kg))),r=s.map(q=>Math.max(...q.sets.map(z=>z.r)));return EX[e].st&&w[0]==w[1]&&w[1]==w[2]&&r[0]<=r[2]});
+const first=D.s.map(x=>x.d).sort()[0],wk=Math.floor((Date.now()-new Date(first))/6048e5);
+let tips=[];if(pr.length)tips.push(`<li class="up">Rekordy ciężaru: ${pr.join(", ")}</li>`);
+st.forEach(e=>tips.push(`<li>${e}: 3 treningi bez progresu. Przy redukcji to normalne. Jeśli to się ciągnie, zamień na inną maszynę na tę samą partię.</li>`));
+if(wk>=6)tips.push(`<li>Trenujesz już ${wk} tyg. Rozważ lżejszy tydzień: te same ćwiczenia, ok. 15% mniejszy ciężar i 2 serie.</li>`);
+return`<div class="card"><h3>Ostatnie 7 dni</h3><ul>${li.map(x=>`<li>${x}</li>`).join("")}</ul></div><div class="card"><h3>Wnioski</h3><ul>${tips.join("")||"<li>Brak uwag. Trzymaj plan i dokładaj ciężar zgodnie z celem na dziś.</li>"}</ul></div>`}
 function render(){const v=$("#v");let h="";
-if(tab=="t"){h=`<div class="days">${Object.keys(PLAN).map(k=>`<button class="${k==day?"on":""}" onclick="day='${k}';render()">TRENING ${k}</button>`).join("")}</div>`+PLAN[day].map((e,i)=>{const t=D.s.filter(x=>x.ex==e&&x.d==today());return`<div class="card"><h3>${e}</h3><small>${last(e)}</small>${t.map(x=>`<div class="set"><span>${x.kg} kg × ${x.r}</span><a onclick="del('s',${x.id})">✕</a></div>`).join("")}<div class="row"><input id="k${i}" type="number" step="0.5" inputmode="decimal" placeholder="kg" value="${t.at(-1)?.kg||""}"><input id="r${i}" type="number" inputmode="numeric" placeholder="powt." value="${t.at(-1)?.r||""}"></div><button class="b" onclick="addSet(${i})">+ SERIA</button></div>`}).join("")}
+if(tab=="t"){h=`<div class="days">${Object.keys(PLAN).map(k=>`<button class="${k==day?"on":""}" onclick="day='${k}';render()">TRENING ${k}</button>`).join("")}</div>`+PLAN[day].map((e,i)=>{const x=EX[e],t=D.s.filter(z=>z.ex==e&&z.d==today()),tg=target(e),dk=t.at(-1)?.kg??(tg?tg.kg:""),dr=t.at(-1)?.r??(tg?tg.r:"");
+return`<div class="card"><div class="top">${fig(x.k)}<div><h3>${e}</h3><div class="goal">${goal(e)}</div><div class="cue">${x.c}</div></div></div>${t.map(z=>`<div class="set"><span>${z.kg} kg × ${z.r}</span><a onclick="del('s',${z.id})">✕</a></div>`).join("")}<div class="row"><input id="k${i}" type="number" step="0.5" inputmode="decimal" placeholder="kg" value="${dk}"><input id="r${i}" type="number" inputmode="numeric" placeholder="powt." value="${dr}"></div><button class="b" onclick="addSet(${i})">+ SERIA</button></div>`}).join("")}
+if(tab=="r")h=report();
 if(tab=="w"){h=`<div class="card"><h3>Waga ciała</h3><div class="row"><input id="wd" type="date" value="${today()}"><input id="wk" type="number" step="0.1" inputmode="decimal" placeholder="kg"></div><button class="b" onclick="addW()">ZAPISZ</button></div><div class="card">${chart(D.w.map(x=>[x.d,x.kg]),"kg")}</div>`+D.w.slice().reverse().slice(0,15).map(x=>`<div class="set"><span>${x.d}: ${x.kg} kg</span><a onclick="del('w',${x.id})">✕</a></div>`).join("")}
 if(tab=="c"){h=`<div class="card"><h3>Cardio</h3><select id="cm">${CARDIO.map(c=>`<option>${c}</option>`).join("")}</select><div class="row"><input id="cmin" type="number" inputmode="numeric" placeholder="czas (min)"><input id="cs" type="number" step="0.1" inputmode="decimal" placeholder="prędkość"><input id="ci" type="number" step="0.5" inputmode="decimal" placeholder="nachylenie"></div><button class="b" onclick="addC()">ZAPISZ</button></div>`+D.c.slice().reverse().slice(0,20).map(x=>`<div class="set"><span>${x.d} ${x.m}: ${x.min} min${x.spd?", "+x.spd+" km/h":""}${x.inc?", nachyl. "+x.inc:""}</span><a onclick="del('c',${x.id})">✕</a></div>`).join("")}
 if(tab=="g"){const by={};D.s.filter(x=>x.ex==ex).forEach(x=>by[x.d]=Math.max(by[x.d]||0,x.kg));h=`<div class="card"><h3>Ciężar w czasie</h3><select onchange="ex=this.value;render()">${ALL.map(e=>`<option ${e==ex?"selected":""}>${e}</option>`).join("")}</select><p class="m">Najcięższa seria danego dnia</p>${chart(Object.keys(by).sort().map(d=>[d,by[d]]),"kg")}</div><div class="card"><h3>Waga ciała</h3>${chart(D.w.map(x=>[x.d,x.kg]),"kg")}</div><button class="b" onclick="exp()">EKSPORT CSV</button>`}
-v.innerHTML=h;$("#n").innerHTML=[["t","TRENING"],["w","WAGA"],["c","CARDIO"],["g","WYKRESY"]].map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="tab='${k}';render()">${l}</button>`).join("")}
+v.innerHTML=h;$("#n").innerHTML=[["t","TRENING"],["r","RAPORT"],["w","WAGA"],["c","CARDIO"],["g","WYKRESY"]].map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="tab='${k}';render()">${l}</button>`).join("")}
 function exp(){const r=["typ,data,nazwa,kg,powt,czas,predkosc,nachylenie",...D.s.map(x=>`sila,${x.d},"${x.ex}",${x.kg},${x.r},,,`),...D.w.map(x=>`waga,${x.d},,${x.kg},,,,`),...D.c.map(x=>`cardio,${x.d},${x.m},,,${x.min},${x.spd},${x.inc}`)].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([r],{type:"text/csv"}));a.download="silownia.csv";a.click()}
 render();load();
 </script></body></html>
