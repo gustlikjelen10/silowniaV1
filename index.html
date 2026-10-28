@@ -6,7 +6,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:16px/1.4 Roboto,"Segoe UI",Arial,sans-serif;padding-bottom:70px}
 h1{margin:0;padding:14px 16px;font:italic 800 24px Roboto,"Segoe UI",Arial,sans-serif;letter-spacing:1px;background:var(--g);color:#04100a;border-bottom:4px solid var(--y)}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#04100a;border-top:3px solid var(--y)}
-nav button{flex:1;padding:14px 2px;background:none;border:0;color:var(--m);font:700 13px Roboto,"Segoe UI",Arial,sans-serif}
+nav button{flex:1;min-width:0;padding:14px 0;background:none;border:0;color:var(--m);font:700 11px Roboto,"Segoe UI",Arial,sans-serif}
 nav button.on{color:var(--bg);background:var(--y)}
 main{padding:12px;max-width:640px;margin:auto}
 .card{background:var(--p);border-left:5px solid var(--g);padding:12px;margin:0 0 12px}
@@ -20,7 +20,7 @@ button.b{background:var(--g);color:#04100a;border:0;padding:12px;font:800 15px R
 .days{display:flex;gap:8px;margin-bottom:12px}.days button{flex:1;padding:12px;background:var(--p);color:var(--t);border:2px solid #24402f;font:800 16px Roboto,"Segoe UI",sans-serif}.days .on{background:var(--y);color:var(--bg)}
 .set{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #24402f}.set a{color:var(--r);padding:0 8px}
 .chart{width:100%;height:auto;background:#04100a}
-li{margin:4px 0}ul{padding-left:18px;margin:6px 0}.up{color:var(--y)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px}.dh{text-align:center;color:var(--m);font-size:12px}.dy{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:var(--p);position:relative}.dy.tr{background:var(--g);color:#04100a;font-weight:800}.dy.td{outline:2px solid var(--y)}.dy.sl{box-shadow:inset 0 0 0 3px var(--y)}.dy i{position:absolute;bottom:3px;width:6px;height:6px;border-radius:50%;background:var(--y)}.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.mh button{width:48px}li{margin:4px 0}ul{padding-left:18px;margin:6px 0}.up{color:var(--y)}
 </style></head><body>
 <h1>SIŁOWNIA 90</h1><main id="v"></main>
 <nav id="n"></nav>
@@ -68,8 +68,8 @@ const PLAN={A:["Wyciskanie nogami (suwnica)","Wyciskanie na klatkę (maszyna)","
 B:["Prostowanie nóg siedząc","Wiosłowanie siedząc (maszyna)","Rozpiętki (maszyna Pec Fly)","Odwrotne rozpiętki (tylny bark)","Uginanie ramion (biceps)","Prostowanie ramion (triceps)"],
 C:["Wyciskanie nogami (suwnica)","Ściąganie drążka wąsko","Wyciskanie na klatkę (maszyna)","Odwodzenie nóg (maszyna)","Prostowanie pleców (maszyna)","Deska (plank, sekundy)"]};
 const ALL=Object.keys(EX),CARDIO=["Rower","Bieżnia","Orbitrek","Wioślarz","Schody"];
-let D={w:[],s:[],c:[]},tab="t",day="A",ex=ALL[0],pin=localStorage.pin||"",tm;
-const today=()=>new Date().toISOString().slice(0,10),ds=n=>new Date(Date.now()-n*864e5).toISOString().slice(0,10),$=s=>document.querySelector(s);
+let D={w:[],s:[],c:[]},tab="t",day="A",cmo=0,sel=null,ex=ALL[0],pin=localStorage.pin||"",tm;
+const ld=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10),today=()=>ld(new Date()),ds=n=>ld(new Date(Date.now()-n*864e5)),$=s=>document.querySelector(s);
 const hd=()=>({"content-type":"application/json","x-pin":pin});
 async function load(){let r=await fetch("/api/data",{headers:hd()});if(r.status==401){pin=prompt("PIN:")||"";localStorage.pin=pin;return load()}D=await r.json();D.w=D.w||[];D.s=D.s||[];D.c=D.c||[];render()}
 function save(){clearTimeout(tm);tm=setTimeout(()=>fetch("/api/data",{method:"PUT",headers:hd(),body:JSON.stringify(D)}),600)}
@@ -99,14 +99,20 @@ let tips=[];if(pr.length)tips.push(`<li class="up">Rekordy ciężaru: ${pr.join(
 st.forEach(e=>tips.push(`<li>${e}: 3 treningi bez progresu. Przy redukcji to normalne. Jeśli to się ciągnie, zamień na inną maszynę na tę samą partię.</li>`));
 if(wk>=6)tips.push(`<li>Trenujesz już ${wk} tyg. Rozważ lżejszy tydzień: te same ćwiczenia, ok. 15% mniejszy ciężar i 2 serie.</li>`);
 return`<div class="card"><h3>Ostatnie 7 dni</h3><ul>${li.map(x=>`<li>${x}</li>`).join("")}</ul></div><div class="card"><h3>Wnioski</h3><ul>${tips.join("")||"<li>Brak uwag. Trzymaj plan i dokładaj ciężar zgodnie z celem na dziś.</li>"}</ul></div>`}
+function cal(){const n=new Date(),b=new Date(n.getFullYear(),n.getMonth()+cmo,1),y=b.getFullYear(),m=b.getMonth(),dim=new Date(y,m+1,0).getDate(),off=(b.getDay()+6)%7,pad=x=>String(x).padStart(2,"0"),pre=y+"-"+pad(m+1),sd=new Set(D.s.map(x=>x.d)),cd=new Set(D.c.map(x=>x.d)),MN=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"],s=sel||today();
+let g=["Pn","Wt","Śr","Cz","Pt","So","Nd"].map(x=>`<div class="dh">${x}</div>`).join("")+"<div></div>".repeat(off);
+for(let d=1;d<=dim;d++){const k=pre+"-"+pad(d);g+=`<div class="dy${sd.has(k)?" tr":""}${k==today()?" td":""}${k==s?" sl":""}" onclick="sel='${k}';render()">${d}${cd.has(k)?"<i></i>":""}</div>`}
+const cnt=[...sd].filter(d=>d.startsWith(pre)).length,by={};D.s.filter(x=>x.d==s).forEach(x=>(by[x.ex]=by[x.ex]||[]).push(x));
+const det=Object.keys(by).map(e=>`<div style="margin:6px 0"><b>${e}</b><br><span class="m">${by[e].map(x=>x.kg+" kg × "+x.r).join(" · ")}</span></div>`).join("")+D.c.filter(x=>x.d==s).map(x=>`<div style="margin:6px 0">${x.m}: ${x.min} min${x.spd?", "+x.spd+" km/h":""}${x.inc?", nachyl. "+x.inc:""}</div>`).join("")+D.w.filter(x=>x.d==s).map(x=>`<div style="margin:6px 0">Waga: ${x.kg} kg</div>`).join("");
+return`<div class="mh"><button class="b" onclick="cmo--;render()">◀</button><b>${MN[m]} ${y}</b><button class="b" onclick="cmo++;render()">▶</button></div><div class="cal">${g}</div><p class="m">Zielone dni: trening siłowy (${cnt} w tym miesiącu). Żółta kropka: cardio.</p><div class="card"><h3>${s}</h3>${det||'<p class="m">Brak wpisów tego dnia.</p>'}</div>`}
 function render(){const v=$("#v");let h="";
 if(tab=="t"){h=`<div class="days">${Object.keys(PLAN).map(k=>`<button class="${k==day?"on":""}" onclick="day='${k}';render()">TRENING ${k}</button>`).join("")}</div>`+PLAN[day].map((e,i)=>{const x=EX[e],t=D.s.filter(z=>z.ex==e&&z.d==today()),tg=target(e),dk=t.at(-1)?.kg??(tg?tg.kg:""),dr=t.at(-1)?.r??(tg?tg.r:"");
 return`<div class="card"><div class="top">${fig(x.k)}<div><h3>${e}</h3><div class="goal">${goal(e)}</div><div class="cue">${x.c}</div></div></div>${t.map(z=>`<div class="set"><span>${z.kg} kg × ${z.r}</span><a onclick="del('s',${z.id})">✕</a></div>`).join("")}<div class="row"><input id="k${i}" type="number" step="0.5" inputmode="decimal" placeholder="kg" value="${dk}"><input id="r${i}" type="number" inputmode="numeric" placeholder="powt." value="${dr}"></div><button class="b" onclick="addSet(${i})">+ SERIA</button></div>`}).join("")}
-if(tab=="r")h=report();
+if(tab=="r")h=report();if(tab=="k")h=cal();
 if(tab=="w"){h=`<div class="card"><h3>Waga ciała</h3><div class="row"><input id="wd" type="date" value="${today()}"><input id="wk" type="number" step="0.1" inputmode="decimal" placeholder="kg"></div><button class="b" onclick="addW()">ZAPISZ</button></div><div class="card">${chart(D.w.map(x=>[x.d,x.kg]),"kg")}</div>`+D.w.slice().reverse().slice(0,15).map(x=>`<div class="set"><span>${x.d}: ${x.kg} kg</span><a onclick="del('w',${x.id})">✕</a></div>`).join("")}
 if(tab=="c"){h=`<div class="card"><h3>Cardio</h3><select id="cm">${CARDIO.map(c=>`<option>${c}</option>`).join("")}</select><div class="row"><input id="cmin" type="number" inputmode="numeric" placeholder="czas (min)"><input id="cs" type="number" step="0.1" inputmode="decimal" placeholder="prędkość"><input id="ci" type="number" step="0.5" inputmode="decimal" placeholder="nachylenie"></div><button class="b" onclick="addC()">ZAPISZ</button></div>`+D.c.slice().reverse().slice(0,20).map(x=>`<div class="set"><span>${x.d} ${x.m}: ${x.min} min${x.spd?", "+x.spd+" km/h":""}${x.inc?", nachyl. "+x.inc:""}</span><a onclick="del('c',${x.id})">✕</a></div>`).join("")}
 if(tab=="g"){const by={};D.s.filter(x=>x.ex==ex).forEach(x=>by[x.d]=Math.max(by[x.d]||0,x.kg));h=`<div class="card"><h3>Ciężar w czasie</h3><select onchange="ex=this.value;render()">${ALL.map(e=>`<option ${e==ex?"selected":""}>${e}</option>`).join("")}</select><p class="m">Najcięższa seria danego dnia</p>${chart(Object.keys(by).sort().map(d=>[d,by[d]]),"kg")}</div><div class="card"><h3>Waga ciała</h3>${chart(D.w.map(x=>[x.d,x.kg]),"kg")}</div><button class="b" onclick="exp()">EKSPORT CSV</button>`}
-v.innerHTML=h;$("#n").innerHTML=[["t","TRENING"],["r","RAPORT"],["w","WAGA"],["c","CARDIO"],["g","WYKRESY"]].map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="tab='${k}';render()">${l}</button>`).join("")}
+v.innerHTML=h;$("#n").innerHTML=[["t","TRENING"],["k","KALENDARZ"],["r","RAPORT"],["w","WAGA"],["c","CARDIO"],["g","WYKRESY"]].map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="tab='${k}';render()">${l}</button>`).join("")}
 function exp(){const r=["typ,data,nazwa,kg,powt,czas,predkosc,nachylenie",...D.s.map(x=>`sila,${x.d},"${x.ex}",${x.kg},${x.r},,,`),...D.w.map(x=>`waga,${x.d},,${x.kg},,,,`),...D.c.map(x=>`cardio,${x.d},${x.m},,,${x.min},${x.spd},${x.inc}`)].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([r],{type:"text/csv"}));a.download="silownia.csv";a.click()}
 render();load();
 </script></body></html>
