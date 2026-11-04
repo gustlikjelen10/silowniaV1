@@ -66,7 +66,7 @@ function fig(k){const q=P[k],f=q.front||k=="fly"||k=="rearfly"||k=="abduct",a=q[
 return`<svg viewBox="0 -8 100 108"><path fill="none" stroke="#2fbf4a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="${A}"><animate attributeName="d" values="${A};${B};${A}" dur="2.6s" repeatCount="indefinite"/></path><circle r="7" fill="#ffd400" cx="${a[0]}" cy="${a[1]}"><animate attributeName="cx" values="${a[0]};${b[0]};${a[0]}" dur="2.6s" repeatCount="indefinite"/><animate attributeName="cy" values="${a[1]};${b[1]};${a[1]}" dur="2.6s" repeatCount="indefinite"/></circle></svg>`}
 const PLAN={A:["Wyciskanie nogami (suwnica)","Wyciskanie na klatkę (maszyna)","Ściąganie drążka do klatki","Wyciskanie nad głowę (maszyna)","Uginanie nóg siedząc","Spięcia brzucha (maszyna)"],
 B:["Prostowanie nóg siedząc","Wiosłowanie siedząc (maszyna)","Rozpiętki (maszyna Pec Fly)","Odwrotne rozpiętki (tylny bark)","Uginanie ramion (biceps)","Prostowanie ramion (triceps)"],
-C:["Wyciskanie nogami (suwnica)","Ściąganie drążka wąsko","Wyciskanie na klatkę (maszyna)","Odwodzenie nóg (maszyna)","Prostowanie pleców (maszyna)","Deska (plank, sekundy)"]};
+C:["Wyciskanie nogami (suwnica)","Ściąganie drążka wąsko","Wyciskanie na klatkę (maszyna)","Uginanie nóg siedząc","Prostowanie pleców (maszyna)","Spięcia brzucha (maszyna)"]};
 const ALL=Object.keys(EX),CARDIO=["Rower","Bieżnia","Orbitrek","Wioślarz","Schody"];
 let D={w:[],s:[],c:[]},tab="t",day="A",cmo=0,sel=null,init=0,ex=ALL[0],pin=localStorage.pin||"",tm;
 const ld=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10),today=()=>ld(new Date()),ds=n=>ld(new Date(Date.now()-n*864e5)),$=s=>document.querySelector(s);
