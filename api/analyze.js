@@ -12,13 +12,16 @@ export default async function handler(req, res) {
   const w = (D.w || []).slice(-12).map(x => x.d + ' ' + x.kg + 'kg').join(', ');
   const c = (D.c || []).filter(x => x.d >= since).map(x => x.d + ' ' + x.m + ' ' + x.min + 'min' + (x.spd ? ' ' + x.spd + 'km/h' : '') + (x.inc ? ' nachyl.' + x.inc : '')).join('; ');
   const g = D.g ? 'Cel wagowy: ' + D.g.kg + ' kg' + (D.g.d ? ' do ' + D.g.d : '') : '';
+  const b = req.body || {};
+  const nx = b.next ? 'Najbliższy zaplanowany trening: ' + String(b.next).slice(0, 2) + ' (' + String(b.plan || '').slice(0, 300) + ').' : '';
   const prompt = `Jesteś doświadczonym trenerem personalnym. Podopieczny: Sebastian, redukcja tkanki tłuszczowej, trenuje od kilku lat, plan FBW (treningi A/B/C), maszyny Star Trac Inspiration, nie lubi wolnych ciężarów. Format serii: ciężar w kg x powtórzenia.
 Dane z ostatnich 8 tygodni (treningi):
 ${sess || 'brak'}
 Waga ciała: ${w || 'brak'}
 Cardio: ${c || 'brak'}
 ${g}
-Przeanalizuj ostatni trening z dnia ${day} na tle poprzednich: progres w każdym ćwiczeniu, regularność, trend wagi, cardio. Odpowiedz po polsku, zwięźle (maks. ok. 180 słów), w czterech krótkich sekcjach z pogrubionymi nagłówkami: **Ocena**, **Co poszło dobrze**, **Na co uważać**, **Następny trening** (konkretne ciężary i powtórzenia dla kluczowych ćwiczeń). Nie powtarzaj surowych danych, nie dawaj porad medycznych.`;
+${nx}
+Przeanalizuj ostatni trening z dnia ${day} na tle poprzednich: progres w każdym ćwiczeniu, regularność, trend wagi, cardio. Odpowiedz po polsku, zwięźle (maks. ok. 180 słów), w czterech krótkich sekcjach z pogrubionymi nagłówkami: **Ocena**, **Co poszło dobrze**, **Na co uważać**, **Następny trening** (konkretne ciężary i powtórzenia dla ćwiczeń z najbliższego zaplanowanego treningu, jeśli podano, w przeciwnym razie dla kluczowych ćwiczeń). Nie powtarzaj surowych danych, nie dawaj porad medycznych.`;
   try {
     const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
