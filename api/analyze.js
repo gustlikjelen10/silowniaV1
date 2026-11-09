@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'Brak GEMINI_API_KEY w ustawieniach Vercel' });
   let D = { w: [], s: [], c: [] };
-  try { const h = await head('gym/data.json'); D = await (await fetch(h.url + '?t=' + Date.now())).json(); } catch (e) {}
+  try { const h = await head('gym/data.json'); D = await (await fetch(h.url + '?t=' + Date.now(), { signal: AbortSignal.timeout(8000) })).json(); } catch (e) {}
   const day = (req.body && req.body.d) || new Date().toISOString().slice(0, 10);
   const since = new Date(Date.now() - 56 * 864e5).toISOString().slice(0, 10), by = {};
   (D.s || []).filter(x => x.d >= since && x.d <= day).forEach(x => { by[x.d] = by[x.d] || {}; (by[x.d][x.ex] = by[x.d][x.ex] || []).push(x.kg + 'x' + x.r); });
@@ -22,21 +22,28 @@ Cardio: ${c || 'brak'}
 ${g}
 ${nx}
 Przeanalizuj ostatni trening z dnia ${day} na tle poprzednich: progres w każdym ćwiczeniu, regularność, trend wagi, cardio. Odpowiedz po polsku, zwięźle (maks. ok. 180 słów), w czterech krótkich sekcjach z pogrubionymi nagłówkami: **Ocena**, **Co poszło dobrze**, **Na co uważać**, **Następny trening** (konkretne ciężary i powtórzenia dla ćwiczeń z najbliższego zaplanowanego treningu, jeśli podano, w przeciwnym razie dla kluczowych ćwiczeń). Nie powtarzaj surowych danych, nie dawaj porad medycznych.`;
-  const models = ['gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+  const T = Number(process.env.GEM_TIMEOUT_MS) || 35000;
+  const tries = [['gemini-flash-latest', T, null], ['gemini-flash-lite-latest', Math.round(T * 0.7), null], ['gemini-2.5-flash', Math.round(T * 0.7), { thinkingConfig: { thinkingBudget: 0 } }]];
   let last = 'Nieznany błąd';
-  for (let i = 0; i < models.length; i++) {
-    if (i === 1) await new Promise(r => setTimeout(r, 2000));
+  for (const [model, ms, gc] of tries) {
+    const t0 = Date.now();
     try {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent', {
+      const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+      if (gc) body.generationConfig = gc;
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
         method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] })
+        body: JSON.stringify(body), signal: AbortSignal.timeout(ms)
       });
       const j = await r.json();
       const text = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).map(p => p.text || '').join('').trim();
+      console.log('gemini', model, r.status, Date.now() - t0, 'ms', text ? 'ok' : 'empty');
       if (text) return res.status(200).json({ text });
       last = (j.error && j.error.message) || 'Pusta odpowiedź Gemini';
       if ([400, 401, 403].includes(r.status)) break;
-    } catch (e) { last = 'Błąd połączenia z Gemini'; }
+    } catch (e) {
+      console.log('gemini', model, 'fail', Date.now() - t0, 'ms', String(e && e.name));
+      last = (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) ? 'Gemini nie odpowiada (przekroczono czas)' : 'Błąd połączenia z Gemini';
+    }
   }
-  return res.status(502).json({ error: /demand|overload|unavailable|quota|exhausted/i.test(last) ? 'Gemini jest chwilowo przeciążone. Spróbuj ponownie za minutę.' : last });
+  return res.status(502).json({ error: /demand|overload|unavailable|quota|exhausted|nie odpowiada/i.test(last) ? 'Gemini jest chwilowo przeciążone lub nie odpowiada. Spróbuj ponownie za minutę.' : last });
 }
