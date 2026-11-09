@@ -22,14 +22,21 @@ Cardio: ${c || 'brak'}
 ${g}
 ${nx}
 Przeanalizuj ostatni trening z dnia ${day} na tle poprzednich: progres w każdym ćwiczeniu, regularność, trend wagi, cardio. Odpowiedz po polsku, zwięźle (maks. ok. 180 słów), w czterech krótkich sekcjach z pogrubionymi nagłówkami: **Ocena**, **Co poszło dobrze**, **Na co uważać**, **Następny trening** (konkretne ciężary i powtórzenia dla ćwiczeń z najbliższego zaplanowanego treningu, jeśli podano, w przeciwnym razie dla kluczowych ćwiczeń). Nie powtarzaj surowych danych, nie dawaj porad medycznych.`;
-  try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent', {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] })
-    });
-    const j = await r.json();
-    const text = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).map(p => p.text || '').join('').trim();
-    if (!text) return res.status(502).json({ error: (j.error && j.error.message) || 'Pusta odpowiedź Gemini' });
-    return res.status(200).json({ text });
-  } catch (e) { return res.status(502).json({ error: 'Błąd połączenia z Gemini' }); }
+  const models = ['gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
+  let last = 'Nieznany błąd';
+  for (let i = 0; i < models.length; i++) {
+    if (i === 1) await new Promise(r => setTimeout(r, 2000));
+    try {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] })
+      });
+      const j = await r.json();
+      const text = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).map(p => p.text || '').join('').trim();
+      if (text) return res.status(200).json({ text });
+      last = (j.error && j.error.message) || 'Pusta odpowiedź Gemini';
+      if ([400, 401, 403].includes(r.status)) break;
+    } catch (e) { last = 'Błąd połączenia z Gemini'; }
+  }
+  return res.status(502).json({ error: /demand|overload|unavailable|quota|exhausted/i.test(last) ? 'Gemini jest chwilowo przeciążone. Spróbuj ponownie za minutę.' : last });
 }
