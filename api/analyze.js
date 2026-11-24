@@ -23,27 +23,33 @@ ${g}
 ${nx}
 Przeanalizuj ostatni trening z dnia ${day} na tle poprzednich: progres w każdym ćwiczeniu, regularność, trend wagi, cardio. Odpowiedz po polsku, zwięźle (maks. ok. 180 słów), w czterech krótkich sekcjach z pogrubionymi nagłówkami: **Ocena**, **Co poszło dobrze**, **Na co uważać**, **Następny trening** (konkretne ciężary i powtórzenia dla ćwiczeń z najbliższego zaplanowanego treningu, jeśli podano, w przeciwnym razie dla kluczowych ćwiczeń). Nie powtarzaj surowych danych, nie dawaj porad medycznych.`;
   const T = Number(process.env.GEM_TIMEOUT_MS) || 35000;
-  const tries = [['gemini-flash-latest', T, null], ['gemini-flash-lite-latest', Math.round(T * 0.7), null], ['gemini-2.5-flash', Math.round(T * 0.7), { thinkingConfig: { thinkingBudget: 0 } }]];
-  let last = 'Nieznany błąd';
-  for (const [model, ms, gc] of tries) {
+  const tries = [['gemini-flash-latest', T], ['gemini-flash-lite-latest', Math.round(T * 0.7)], ['gemini-3.8-flash', Math.round(T * 0.7)]];
+  const call = async (model, ms, gc) => {
+    const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+    if (gc) body.generationConfig = gc;
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(ms)
+    });
+    const j = await r.json();
+    const text = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).map(p => p.text || '').join('').trim();
+    return { status: r.status, text, err: (j.error && j.error.message) || (text ? '' : 'Pusta odpowiedź') };
+  };
+  const errs = [];
+  for (const [model, ms] of tries) {
     const t0 = Date.now();
     try {
-      const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
-      if (gc) body.generationConfig = gc;
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-        body: JSON.stringify(body), signal: AbortSignal.timeout(ms)
-      });
-      const j = await r.json();
-      const text = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts || []).map(p => p.text || '').join('').trim();
-      console.log('gemini', model, r.status, Date.now() - t0, 'ms', text ? 'ok' : 'empty');
-      if (text) return res.status(200).json({ text });
-      last = (j.error && j.error.message) || 'Pusta odpowiedź Gemini';
-      if ([400, 401, 403].includes(r.status)) break;
+      let o = await call(model, ms, { thinkingConfig: { thinkingLevel: 'low' } });
+      if (!o.text && o.status === 400) o = await call(model, ms, null);
+      console.log('gemini', model, o.status, Date.now() - t0, 'ms', o.text ? 'ok' : o.err.slice(0, 120));
+      if (o.text) return res.status(200).json({ text: o.text });
+      errs.push(model + ': ' + o.err.slice(0, 140));
+      if ([401, 403].includes(o.status)) break;
     } catch (e) {
       console.log('gemini', model, 'fail', Date.now() - t0, 'ms', String(e && e.name));
-      last = (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) ? 'Gemini nie odpowiada (przekroczono czas)' : 'Błąd połączenia z Gemini';
+      errs.push(model + ': ' + ((e && (e.name === 'TimeoutError' || e.name === 'AbortError')) ? 'brak odpowiedzi w limicie czasu' : 'błąd połączenia'));
     }
   }
-  return res.status(502).json({ error: /demand|overload|unavailable|quota|exhausted|nie odpowiada/i.test(last) ? 'Gemini jest chwilowo przeciążone lub nie odpowiada. Spróbuj ponownie za minutę.' : last });
+  const all = errs.join(' | ');
+  return res.status(502).json({ error: /demand|overload|unavailable/i.test(all) ? 'Gemini jest chwilowo przeciążone. Spróbuj ponownie za minutę. (' + errs[0] + ')' : all.slice(0, 400) });
 }
